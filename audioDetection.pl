@@ -1,4 +1,5 @@
 use strict;
+use v5.10;
 
 use Getopt::Long;
 use Proc::Daemon;
@@ -42,8 +43,14 @@ GetOptions(
     "pidFile=s"         => \$pidFile,
     "start"             => \$daemonStart,
     "stop"              => \$daemonStop,
-    "version"           => sub { say("openHab-AudioDetection $VERSION"); },
-    "help"              => sub { say("http://github.com/pvizeli/openHab-AudioDetection"); }
+    "version"           => sub { 
+                            say("openHab-AudioDetection $VERSION");
+                            exit(0);
+                        },
+    "help"              => sub { 
+                            say("http://github.com/pvizeli/openHab-AudioDetection"); 
+                            exit(0);
+                        }
 ) or die("Command line error!");
 
 ###
