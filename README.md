@@ -9,6 +9,7 @@ I wrote this program for use openHab with a IP-Cam (D-Link 2332L) as baby monito
 Default it is optimize for human voice sound. It use a highpass filter with 300Hz and a lowpass filter from 2500Hz. This filter all frequenze with none human voice.
 
 ## Audio silence detection
+It detects that the input audio volume is less or equal to a noise tolerance value for a duration greater or equal to the minimum detected noise duration.
 
 # Commandline
 
@@ -31,8 +32,8 @@ audioDetection.pl --stop [--pidFile=/tmp/audioDetection.pid]
 - ```--iceCastLegacy``` Is the icecast server older than 2.4, set this flag.
 - ```--highpass``` Cut all frequence lower than this value. Default is 300Hz.
 - ```--lowpass``` Cut all frequence higher than this value. Default is 2500Hz.
-- ```--silenceDb```
-- ```--silenceSec```
+- ```--silenceDb``` Noise tolerance value in Db. Default is -30Db.
+- ```--silenceSec``` Duration of the minimum detected noise time. Default is 20 Sec.
 - ```--sampleRate``` Scale up audio sample rate. For SONOS use minimal 16000 that is also the default value.
 - ```--pidFile``` Set the pid file for deamon. For multible instance use multible pid file.
 - ```--start``` Start the program as daemon.
