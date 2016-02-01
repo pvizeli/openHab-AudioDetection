@@ -47,6 +47,13 @@ audioDetection.pl --stop [--pidFile=/tmp/audioDetection.pid]
 
 ## OpenHab
 
+
+```
+Switch Babyphone_Alarm "Babyphone Alarm" (Child)
+Switch Baby_Monitor "Babyphone" (Child) { exec="ON:perl@@audioDetection.pl@@--start@@--pidFile=/tmp/baby_monitor.pid@@--openHabUrl=http://192.168.1.10:8080@@--openHabItem=Babyphone_Alarm@@--ipCamUrl=rtsp://admin:pw@192.168.1.20/live3.sdp@@--iceCastLegacy@@--iceCastUrl=icecast://camUser:camPW@127.0.0.1:8000/baby_phone.mp3, OFF:perl@@audioDetection.pl@@--stop@@--pidFile=/tmp/baby_monitor.pid" }
+
+```
+
 ## IceCast
 
 ```
