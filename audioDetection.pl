@@ -7,7 +7,7 @@ use Proc::Daemon;
 ###
 # Static object
 ###
-my $VERSION = "0.1";
+my $VERSION = "0.2";
 my $daemon  = Proc::Daemon->new();
 
 ###
@@ -27,6 +27,9 @@ my $sampleRate      = "16000";
 my $pidFile         = "/tmp/audioDetection.pid";
 my $daemonStart     = "";
 my $daemonStop      = "";
+my $ffmpegBin       = "ffmpeg";
+my $curlBin         = "curl";
+my $logFile;
 
 GetOptions(
     "openHabUrl:s"      => \$openHabUrl,
@@ -40,9 +43,12 @@ GetOptions(
     "silenceDb=i"       => \$silenceDb,
     "silenceSec=i"      => \$silenceSec,
     "sampleRate=i"      => \$sampleRate,
+    "ffmpegBin:s"       => \$ffmpegBin,
+    "curlBin:s"         => \$curlBin,
     "pidFile=s"         => \$pidFile,
     "start"             => \$daemonStart,
     "stop"              => \$daemonStop,
+    "logFile:s"         => \$logFile,
     "version"           => sub { 
                             say("openHab-AudioDetection $VERSION");
                             exit(0);
@@ -98,9 +104,18 @@ else {
 ###
 my $FFMPEG;
 my $ICECAST;
+my $LOGFILE;
 
 # close daemon on INT
 $SIG{INT} = \&initSign;
+
+###
+# Logfile things
+###
+
+if ($logFile) {
+    open($LOGFILE, ">>", $logFile);
+}
 
 ###
 # Advents options
@@ -117,15 +132,23 @@ if ($iceCastLegacy) {
 }
 
 # Start read data from webcam
-my $ffmpegPid = open($FFMPEG, "ffmpeg -i $ipCamUrl -vn -af '$noiceF, $silenceF' -f rtp rtp://127.0.0.1:$intPort 2>&1 |");
+my $ffmpegPid = open($FFMPEG, "$ffmpegBin -i $ipCamUrl -vn -af '$noiceF, $silenceF' -f rtp rtp://127.0.0.1:$intPort 2>&1 |");
+
+# log
+say($LOGFILE, "FFMPEG start / Error: $!") if $logFile;
 
 while(my $line = <$FFMPEG>) {
+    # log
+    say($LOGFILE, "FFMPEG parse line: $line") if $logFile;
 
     # Start voice
     if ($line =~ /silence_end/) {
         # start Icecast stream
         if ($iceCastUrl) {
-            $iceCastPid = open($ICECAST, "ffmpeg -i rtp://127.0.0.1:$intPort -acodec libmp3lame -ar $sampleRate $iceCastOpt -f mp3 $iceCastUrl 2>&1 1> /dev/null |");
+            $iceCastPid = open($ICECAST, "$ffmpegBin -i rtp://127.0.0.1:$intPort -acodec libmp3lame -ar $sampleRate $iceCastOpt -f mp3 $iceCastUrl 2>&1 1> /dev/null |");
+
+            # log
+            say($LOGFILE, "IceCast start / Error: $!") if $logFile;
         }
 
         # send
@@ -142,11 +165,20 @@ while(my $line = <$FFMPEG>) {
             close($ICECAST);
 
             $iceCastPid = 0;
+
+            # log
+            say($LOGFILE, "IceCast streaming end") if $logFile;
         }
     }
 }
 
+# log
+say($LOGFILE, "FFMPEG streaming end") if $logFile;
+
 close($FFMPEG);
+close($LOGFILE) if $logFile;
+
+# End
 
 sub initSign()
 {
@@ -155,6 +187,7 @@ sub initSign()
 
     close($FFMPEG);
     close($ICECAST);
+    close($LOGFILE) if $logFile;
     exit(0);
 }
 
@@ -162,6 +195,9 @@ sub sendOpenHab()
 {
     my $cmd = shift;
 
-    system("curl --header \"Content-Type: text/plain\" --request POST --data \"$cmd\" $openHabUrl/rest/items/$openHabItem");
+    system("$curlBin --header \"Content-Type: text/plain\" --request POST --data \"$cmd\" $openHabUrl/rest/items/$openHabItem");
+
+    # log
+    say($LOGFILE, "Send $cmd to openHab") if $logFile;
 }
 
