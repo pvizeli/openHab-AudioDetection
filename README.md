@@ -1,5 +1,5 @@
 # openHab-AudioDetection
-Audio voice/noice detection from IP camera feed. If a audio/voice detect it can also stream to a icecast server for streaming with SONOS.
+Audio voice/noice detection from IP camera feed. If a audio/voice detect it can also stream to a icecast server for playing with SONOS.
 
 It take very small CPU performance. On Raspberry Pi2 B run the scan with 1.6% CPU usage. If it detect a noise/voice in the stream they can encode it as mp3 and stream it to icecast. This is optional but very usefully for some situation.The encoding process use 5-6% of cpu usage.
 
@@ -50,11 +50,14 @@ If you have trouble please us the --logFile option to write a debug log. That wi
 # Install
 This script use ffmpeg (not libav!) for audio analysing and streaming and curl for calling openHab rest API. Theoretical it work an all system they have perl, ffmpeg and curl. But for process handling I've only implement POSIX systems to use my script. Windows have a other process/service handling and I use this script on my raspberry. I've no time to spend for windows compatibility but you are free to delete all POSIX stuff in my script for use it on windows.
 
-Software:
+**Software:**
 - Perl with Proc::Daemon
 - ffmpeg with libmp3lame support
 - curl
 - icecast2 *(Optional)* for stream audio to i.e. SONOS
+- openhab-addon-binding-exec
+
+Copy the *audioDetection.pl* script to path they have access from openhab. That is all. Start an stop is possible from openhab with a switch.
 
 ## Debian
 Install ffmpeg from multimedia backports http://www.deb-multimedia.org/.
@@ -70,9 +73,27 @@ If you have Raspbian with jessie you can use multimedia backports if you don't n
 
 **Compile:**
 ```
+sudo apt-get remove --purge libtool libaacplus-* libx264 libvpx librtmp ffmpeg
 sudo apt-get install curl libproc-daemon-perl icecast2 libmp3lame-dev
 ```
 
+**x264**
+```
+git clone git://git.videolan.org/x264
+cd x264
+./configure --enable-static --disable-opengl
+make
+sudo make install
+```
+
+**ffmpeg**
+```
+git clone --depth 1 git://git.videolan.org/ffmpeg
+cd ffmpeg
+./configure --enable-gpl --enable-libx264 --enable-nonfree --enable-libmp3lame
+make
+sudo make install
+```
 
 # Configs
 
