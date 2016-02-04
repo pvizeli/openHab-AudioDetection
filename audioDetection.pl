@@ -7,7 +7,7 @@ use Proc::Daemon;
 ###
 # Static object
 ###
-my $VERSION = "0.2";
+my $VERSION = "0.3";
 my $daemon  = Proc::Daemon->new();
 
 ###
@@ -125,60 +125,82 @@ my $silenceF        = "silencedetect=n=" . $silenceDb . "dB:d=$silenceSec";
 
 # icecast
 my $iceCastOpt      = "";
-my $iceCastPid      = 0;
 
 if ($iceCastLegacy) {
     $iceCastOpt     = "-legacy_icecast";    
 }
 
-# Start read data from webcam
-my $ffmpegPid = open($FFMPEG, "$ffmpegBin -i $ipCamUrl -vn -af '$noiceF, $silenceF' -f rtp rtp://127.0.0.1:$intPort 2>&1 |");
+###
+# Main Loop
+###
+my $iceCastPid      = 0;
+my $ffmpegPid       = 0;
+my $okStream        = 0;
 
-# log
-say($LOGFILE, "FFMPEG start / Error: $!") if $logFile;
+do {
+    # Start read data from webcam
+    $ffmpegPid = open($FFMPEG, "$ffmpegBin -i $ipCamUrl -vn -af '$noiceF, $silenceF' -f rtp rtp://127.0.0.1:$intPort 2>&1 |");
 
-while(my $line = <$FFMPEG>) {
     # log
-    say($LOGFILE, "FFMPEG parse line: $line") if $logFile;
+    say($LOGFILE, "FFMPEG start / Error: $!") if $logFile;
 
-    # Start voice
-    if ($line =~ /silence_end/) {
-        # start Icecast stream
-        if ($iceCastUrl) {
-            $iceCastPid = open($ICECAST, "$ffmpegBin -i rtp://127.0.0.1:$intPort -acodec libmp3lame -ar $sampleRate $iceCastOpt -f mp3 $iceCastUrl 2>&1 1> /dev/null |");
+    # read data
+    while(my $line = <$FFMPEG>) {
+        # log
+        say($LOGFILE, "FFMPEG parse line: $line") if $logFile;
 
-            # log
-            say($LOGFILE, "IceCast start / Error: $!") if $logFile;
+        # Start voice
+        if ($line =~ /silence_end/) {
+            $okStream = 1;
+
+            # start Icecast stream
+            if ($iceCastUrl) {
+                $iceCastPid = open($ICECAST, "$ffmpegBin -i rtp://127.0.0.1:$intPort -acodec libmp3lame -ar $sampleRate $iceCastOpt -f mp3 $iceCastUrl 2>&1 1> /dev/null |");
+
+                # log
+                say($LOGFILE, "IceCast start / Error: $!") if $logFile;
+            }
+
+            # send
+            sendOpenHab("ON");
         }
+        # End voice
+        elsif ($line =~ /silence_start/) {
+            $okStream = 1;
 
-        # send
-        sendOpenHab("ON");
-    }
-    # End voice
-    elsif ($line =~ /silence_start/) {
-        # send
-        sendOpenHab("OFF");
+            # send
+            sendOpenHab("OFF");
 
-        # close Icecast stream
-        if ($iceCastPid) {
-            $daemon->Kill_Daemon($iceCastPid);
-            close($ICECAST);
+            # close Icecast stream
+            if ($iceCastPid) {
+                $daemon->Kill_Daemon($iceCastPid);
+                close($ICECAST);
 
-            $iceCastPid = 0;
+                $iceCastPid = 0;
 
-            # log
-            say($LOGFILE, "IceCast streaming end") if $logFile;
+                # log
+                say($LOGFILE, "IceCast streaming end") if $logFile;
+            }
         }
     }
-}
+
+    # close ffmpeg
+    close($FFMPEG);
+
+    # log
+    say($LOGFILE, "FFMPEG abrupt end!") if $logFile;
+
+    # wait befor reconnect
+    sleep(10);
+} while($okStream);
 
 # log
 say($LOGFILE, "FFMPEG streaming end") if $logFile;
-
-close($FFMPEG);
 close($LOGFILE) if $logFile;
 
+###
 # End
+###
 
 sub initSign()
 {

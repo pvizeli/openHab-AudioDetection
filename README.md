@@ -118,3 +118,8 @@ Switch Baby_Monitor "Babyphone" (Child) { exec="ON:perl@@audioDetection.pl@@--st
 </mount>
 ```
 
+# Changelog
+
+- *0.3*: If the connection break to camera, it reconnect after 10 sec
+- *0.2*: Add commands --fmpegBin, --curlBin and --logFile
+
