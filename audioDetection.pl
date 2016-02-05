@@ -1,13 +1,15 @@
 use strict;
 use v5.10;
 
+use POSIX;
+use IO::File;
 use Getopt::Long;
 use Proc::Daemon;
 
 ###
 # Static object
 ###
-my $VERSION = "0.3";
+my $VERSION = "0.4";
 my $daemon  = Proc::Daemon->new();
 
 ###
@@ -25,6 +27,7 @@ my $silenceDb       = "-30";
 my $silenceSec      = "20";
 my $sampleRate      = "16000";
 my $pidFile         = "/tmp/audioDetection.pid";
+my $pipeFile;
 my $daemonStart     = "";
 my $daemonStop      = "";
 my $ffmpegBin       = "ffmpeg";
@@ -46,6 +49,7 @@ GetOptions(
     "ffmpegBin:s"       => \$ffmpegBin,
     "curlBin:s"         => \$curlBin,
     "pidFile=s"         => \$pidFile,
+    "pipeFile:s"        => \$pipeFile,
     "start"             => \$daemonStart,
     "stop"              => \$daemonStop,
     "logFile:s"         => \$logFile,
@@ -104,6 +108,7 @@ else {
 ###
 my $FFMPEG;
 my $ICECAST;
+my $PIPE;
 my $LOGFILE;
 
 # close daemon on INT
@@ -114,13 +119,13 @@ $SIG{INT} = \&initSign;
 ###
 
 if ($logFile) {
-    open($LOGFILE, ">>", $logFile);
+    $LOGFILE = IO::File->new(">> $logFile");
 }
 
 ###
 # Advents options
 ###
-my $noiceF          = "highpass=f=$lowpass, lowpass=f=$highpass";
+my $noiceF          = "highpass=f=$highpass, lowpass=f=$lowpass";
 my $silenceF        = "silencedetect=n=" . $silenceDb . "dB:d=$silenceSec";
 
 # icecast
@@ -131,6 +136,28 @@ if ($iceCastLegacy) {
 }
 
 ###
+# Pipe
+###
+
+# Generate default
+if (!$pipeFile) {
+    $pipeFile       = $pidFile . ".pipe";
+}
+
+# don't exist pipe / create one
+if (!-e $pipeFile) {
+    POSIX::mkfifo($pipeFile, 0744);
+}
+# not a pipe
+elsif (!-p $pipeFile) {
+    unlink($pipeFile);
+    POSIX::mkfifo($pipeFile, 0744);
+}
+
+# open pipe
+$PIPE = IO::File->new("+< $pipeFile");
+
+###
 # Main Loop
 ###
 my $iceCastPid      = 0;
@@ -139,15 +166,15 @@ my $okStream        = 0;
 
 do {
     # Start read data from webcam
-    $ffmpegPid = open($FFMPEG, "$ffmpegBin -i $ipCamUrl -vn -af '$noiceF, $silenceF' -f rtp rtp://127.0.0.1:$intPort 2>&1 |");
+    $ffmpegPid = open($FFMPEG, "$ffmpegBin -i $ipCamUrl -vn -af '$noiceF, $silenceF' -f rtp rtp://127.0.0.1:$intPort 2> $pipeFile |");
 
     # log
-    say($LOGFILE, "FFMPEG start / Error: $!") if $logFile;
+    $LOGFILE->say("FFMPEG start") if $logFile;
 
     # read data
-    while(my $line = <$FFMPEG>) {
+    while(my $line = $PIPE->getline()) {
         # log
-        say($LOGFILE, "FFMPEG parse line: $line") if $logFile;
+        $LOGFILE->print($line) if $logFile;
 
         # Start voice
         if ($line =~ /silence_end/) {
@@ -158,7 +185,8 @@ do {
                 $iceCastPid = open($ICECAST, "$ffmpegBin -i rtp://127.0.0.1:$intPort -acodec libmp3lame -ar $sampleRate $iceCastOpt -f mp3 $iceCastUrl 2>&1 1> /dev/null |");
 
                 # log
-                say($LOGFILE, "IceCast start / Error: $!") if $logFile;
+                $LOGFILE->say("IceCast start") if $logFile;
+                sleep(1);
             }
 
             # send
@@ -179,7 +207,7 @@ do {
                 $iceCastPid = 0;
 
                 # log
-                say($LOGFILE, "IceCast streaming end") if $logFile;
+                $LOGFILE->say("IceCast streaming end") if $logFile;
             }
         }
     }
@@ -188,15 +216,15 @@ do {
     close($FFMPEG);
 
     # log
-    say($LOGFILE, "FFMPEG abrupt end!") if $logFile;
+    $LOGFILE->say("FFMPEG abrupt end!") if $logFile;
 
     # wait befor reconnect
     sleep(10);
 } while($okStream);
 
 # log
-say($LOGFILE, "FFMPEG streaming end") if $logFile;
-close($LOGFILE) if $logFile;
+$LOGFILE->say("FFMPEG streaming end") if $logFile;
+$LOGFILE->close() if $logFile;
 
 ###
 # End
@@ -204,12 +232,18 @@ close($LOGFILE) if $logFile;
 
 sub initSign()
 {
+    $LOGFILE->say("Receive SIGINT") if $logFile;
+
     $daemon->Kill_Daemon($iceCastPid);
     $daemon->Kill_Daemon($ffmpegPid);
 
+    # process handle
     close($FFMPEG);
     close($ICECAST);
-    close($LOGFILE) if $logFile;
+
+    # file handle
+    $PIPE->close();
+    $LOGFILE->close() if $logFile;
     exit(0);
 }
 
@@ -220,6 +254,6 @@ sub sendOpenHab()
     system("$curlBin --header \"Content-Type: text/plain\" --request POST --data \"$cmd\" $openHabUrl/rest/items/$openHabItem");
 
     # log
-    say($LOGFILE, "Send $cmd to openHab") if $logFile;
+    $LOGFILE->say("Send $cmd to openHab") if $logFile;
 }
 

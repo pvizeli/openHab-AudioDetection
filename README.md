@@ -15,7 +15,7 @@ It detects that the input audio volume is less or equal to a noise tolerance val
 
 Start process:
 ```
-audioDetection.pl --start [--pidFile=/tmp/audioDetection.pid] [--logFile=/tmp/myDetection.log] [--ffmpegBin=ffmpeg] [--curlBin=curl] --openHabUrl=http://192.168.1.10:8080 --openHabItem=Baby_Alarm --ipCamUrl=rtsp://192.168.1.11:554/live1.sdp [[--intPort=9554] --iceCastUrl=icecast://user:pw@192.168.1.12:8000/cam_audio.mp3 [--iceCastLegacy]] [--highpass=300] [--lowpass=2500] [--silenceDb=-30] [--silenceSec=20]
+audioDetection.pl --start [--pidFile=/tmp/audioDetection.pid] [--pipeFile=/tmp/audioDetection.pid.pipe] [--logFile=/tmp/myDetection.log] [--ffmpegBin=ffmpeg] [--curlBin=curl] --openHabUrl=http://192.168.1.10:8080 --openHabItem=Baby_Alarm --ipCamUrl=rtsp://192.168.1.11:554/live1.sdp [[--intPort=9554] --iceCastUrl=icecast://user:pw@192.168.1.12:8000/cam_audio.mp3 [--iceCastLegacy]] [--highpass=300] [--lowpass=2500] [--silenceDb=-30] [--silenceSec=20]
 ```
 
 Stop process:
@@ -36,6 +36,7 @@ audioDetection.pl --stop [--pidFile=/tmp/audioDetection.pid]
 - ```--silenceSec``` Duration of the minimum detected noise time. Default is 20 Sec.
 - ```--sampleRate``` Scale up audio sample rate. For SONOS use minimal 16000 that is also the default value.
 - ```--pidFile``` Set the pid file for deamon. For multible instance use multible pid file.
+- ```--pipeFile``` Set the pipe file for IPC communication. Default is pidFile.pipe.
 - ```--logFile``` Use a logfile for debug ouput. If don't set a file (default) it dosn't log.
 - ```--start``` Start the program as daemon.
 - ```--stop``` Stop a running daemon.
@@ -120,6 +121,7 @@ Switch Baby_Monitor "Babyphone" (Child) { exec="ON:perl@@audioDetection.pl@@--st
 
 # Changelog
 
+- *0.4*: Fix high/low pass filtering bug. Use pipe for IPC
 - *0.3*: If the connection break to camera, it reconnect after 10 sec
 - *0.2*: Add commands --fmpegBin, --curlBin and --logFile
 
