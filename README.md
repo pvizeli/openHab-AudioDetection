@@ -15,7 +15,7 @@ It detects that the input audio volume is less or equal to a noise tolerance val
 
 Start process:
 ```
-audioDetection.pl --start [--pidFile=/tmp/audioDetection.pid] [--pipeFile=/tmp/audioDetection.pid.pipe] [--logFile=/tmp/myDetection.log] [--ffmpegBin=ffmpeg] [--curlBin=curl] --openHabUrl=http://192.168.1.10:8080 --openHabItem=Baby_Alarm --ipCamUrl=rtsp://192.168.1.11:554/live1.sdp [[--intPort=9554] --iceCastUrl=icecast://user:pw@192.168.1.12:8000/cam_audio.mp3 [--iceCastLegacy]] [--highpass=300] [--lowpass=2500] [--silenceDb=-30] [--silenceSec=20]
+audioDetection.pl --start [--pidFile=/tmp/audioDetection.pid] [--pipeFile=/tmp/audioDetection.pid.pipe] [--logFile=/tmp/myDetection.log] [--ffmpegBin=ffmpeg] [--curlBin=curl] --openHabUrl=http://192.168.1.10:8080 --openHabItem=Baby_Alarm --ipCamUrl=rtsp://192.168.1.11:554/live1.sdp [[--intPort=9554] --iceCastUrl=icecast://user:pw@192.168.1.12:8000/cam_audio.mp3 [--iceCastLegacy] [--iceCastVol=2]] [--highpass=300] [--lowpass=2500] [--silenceDb=-30] [--silenceSec=20]
 ```
 
 Stop process:
@@ -30,6 +30,7 @@ audioDetection.pl --stop [--pidFile=/tmp/audioDetection.pid]
 - ```--intPort``` Port for internal RTP streaming. Default port is 9554.
 - ```--iceCastUrl``` FFMPEG icecast URL. Is no URL defined, it'will not send the stream to icecast server.
 - ```--iceCastLegacy``` Is the icecast server older than 2.4, set this flag.
+- ```--iceCastVol``` Multi input volume with this value for output.
 - ```--highpass``` Cut all frequence lower than this value. Default is 300Hz.
 - ```--lowpass``` Cut all frequence higher than this value. Default is 2500Hz.
 - ```--silenceDb``` Noise tolerance value in Db. Default is -30Db.
@@ -121,6 +122,7 @@ Switch Baby_Monitor "Babyphone" (Child) { exec="ON:perl@@audioDetection.pl@@--st
 
 # Changelog
 
+- *0.5*: Fix iceCast2 bug in streaming and add option --iceCastVol
 - *0.4*: Fix high/low pass filtering bug. Use pipe for IPC
 - *0.3*: If the connection break to camera, it reconnect after 10 sec
 - *0.2*: Add commands --fmpegBin, --curlBin and --logFile

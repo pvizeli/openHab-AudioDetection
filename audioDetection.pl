@@ -9,7 +9,7 @@ use Proc::Daemon;
 ###
 # Static object
 ###
-my $VERSION = "0.4";
+my $VERSION = "0.5";
 my $daemon  = Proc::Daemon->new();
 
 ###
@@ -20,7 +20,8 @@ my $openHabItem;
 my $ipCamUrl;
 my $intPort         = "9554";
 my $iceCastUrl;
-my $iceCastLegacy   = "";
+my $iceCastLegacy;
+my $iceCastVol;
 my $highpass        = "300";
 my $lowpass         = "2500";
 my $silenceDb       = "-30";
@@ -41,6 +42,7 @@ GetOptions(
     "intPort=i"         => \$intPort,
     "iceCastUrl:s"      => \$iceCastUrl,
     "iceCastLegacy"     => \$iceCastLegacy,
+    "iceCastVol:1"        => \$iceCastVol,
     "highpass=i"        => \$highpass,
     "lowpass=i"         => \$lowpass,
     "silenceDb=i"       => \$silenceDb,
@@ -128,11 +130,19 @@ if ($logFile) {
 my $noiceF          = "highpass=f=$highpass, lowpass=f=$lowpass";
 my $silenceF        = "silencedetect=n=" . $silenceDb . "dB:d=$silenceSec";
 
-# icecast
+##
+# IceCast
 my $iceCastOpt      = "";
+my $iceCastFilter   = "";
 
+# old icecast vers
 if ($iceCastLegacy) {
-    $iceCastOpt     = "-legacy_icecast";    
+    $iceCastOpt     = "-legacy_icecast 1";    
+}
+
+# vol
+if ($iceCastVol) {
+    $iceCastFilter  = "-af 'volume=volume=$iceCastVol'";
 }
 
 ###
@@ -182,7 +192,7 @@ do {
 
             # start Icecast stream
             if ($iceCastUrl) {
-                $iceCastPid = open($ICECAST, "$ffmpegBin -i rtp://127.0.0.1:$intPort -acodec libmp3lame -ar $sampleRate $iceCastOpt -f mp3 $iceCastUrl 2>&1 1> /dev/null |");
+                $iceCastPid = open($ICECAST, "$ffmpegBin -i rtp://127.0.0.1:$intPort -acodec libmp3lame -ar $sampleRate $iceCastFilter $iceCastOpt -f mp3 $iceCastUrl 2> /dev/null |");
 
                 # log
                 $LOGFILE->say("IceCast start") if $logFile;
