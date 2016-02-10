@@ -129,5 +129,5 @@ Switch Baby_Monitor "Babyphone" (Child) { exec="ON:perl@@audioDetection.pl@@--st
 
 # Example
 That's my babephone :)
-![alt text](https://github.com/pvizeli/openHab-AudioDetection/blob/master/example_openhab.png)
+<img src="https://github.com/pvizeli/openHab-AudioDetection/blob/master/example_openhab.png" width="400">
 
