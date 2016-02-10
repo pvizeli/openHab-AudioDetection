@@ -9,7 +9,7 @@ use Proc::Daemon;
 ###
 # Static object
 ###
-my $VERSION = "0.5";
+my $VERSION = "0.6";
 my $daemon  = Proc::Daemon->new();
 
 ###
@@ -164,9 +164,6 @@ elsif (!-p $pipeFile) {
     POSIX::mkfifo($pipeFile, 0744);
 }
 
-# open pipe
-$PIPE = IO::File->new("+< $pipeFile");
-
 ###
 # Main Loop
 ###
@@ -175,6 +172,9 @@ my $ffmpegPid       = 0;
 my $okStream        = 0;
 
 do {
+    # open pipe
+    $PIPE = IO::File->new("+< $pipeFile");
+
     # Start read data from webcam
     $ffmpegPid = open($FFMPEG, "$ffmpegBin -i $ipCamUrl -vn -af '$noiceF, $silenceF' -f rtp rtp://127.0.0.1:$intPort 2> $pipeFile |");
 
@@ -225,11 +225,14 @@ do {
     # close ffmpeg
     close($FFMPEG);
 
+    # close pipe
+    $PIPE->close();
+
     # log
     $LOGFILE->say("FFMPEG abrupt end!") if $logFile;
 
     # wait befor reconnect
-    sleep(10);
+    sleep(30);
 } while($okStream);
 
 # log
@@ -254,6 +257,7 @@ sub initSign()
     # file handle
     $PIPE->close();
     $LOGFILE->close() if $logFile;
+
     exit(0);
 }
 

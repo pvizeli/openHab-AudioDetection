@@ -122,6 +122,7 @@ Switch Baby_Monitor "Babyphone" (Child) { exec="ON:perl@@audioDetection.pl@@--st
 
 # Changelog
 
+- *0.6*: Reconnect with pipe handling
 - *0.5*: Fix iceCast2 bug in streaming and add option --iceCastVol
 - *0.4*: Fix high/low pass filtering bug. Use pipe for IPC
 - *0.3*: If the connection break to camera, it reconnect after 10 sec
