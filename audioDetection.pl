@@ -9,7 +9,7 @@ use Proc::Daemon;
 ###
 # Static object
 ###
-my $VERSION = "0.6";
+my $VERSION = "0.7";
 my $daemon  = Proc::Daemon->new();
 
 ###
@@ -25,7 +25,7 @@ my $iceCastVol;
 my $highpass        = "300";
 my $lowpass         = "2500";
 my $silenceDb       = "-30";
-my $silenceSec      = "20";
+my $silenceSec      = "60";
 my $sampleRate      = "16000";
 my $pidFile         = "/tmp/audioDetection.pid";
 my $pipeFile;
@@ -55,12 +55,12 @@ GetOptions(
     "start"             => \$daemonStart,
     "stop"              => \$daemonStop,
     "logFile:s"         => \$logFile,
-    "version"           => sub { 
+    "version"           => sub {
                             say("openHab-AudioDetection $VERSION");
                             exit(0);
                         },
-    "help"              => sub { 
-                            say("http://github.com/pvizeli/openHab-AudioDetection"); 
+    "help"              => sub {
+                            say("http://github.com/pvizeli/openHab-AudioDetection");
                             exit(0);
                         }
 ) or die("Command line error!");
@@ -71,13 +71,13 @@ GetOptions(
 
 # stop daemon
 if ($daemonStop) {
-    
+
     # state of daemon
     my $pid = $daemon->Status($pidFile);
 
     # daemon is running
     if ($pid) {
-        $daemon->Kill_Daemon($pid, 'INT');    
+        $daemon->Kill_Daemon($pid, 'INT');
     }
 
     # end program
@@ -137,7 +137,7 @@ my $iceCastFilter   = "";
 
 # old icecast vers
 if ($iceCastLegacy) {
-    $iceCastOpt     = "-legacy_icecast 1";    
+    $iceCastOpt     = "-legacy_icecast 1";
 }
 
 # vol
@@ -247,6 +247,9 @@ sub initSign()
 {
     $LOGFILE->say("Receive SIGINT") if $logFile;
 
+    # Send stop to openhab
+    sendOpenHab("OFF") if $iceCastPid != 0;
+
     $daemon->Kill_Daemon($iceCastPid);
     $daemon->Kill_Daemon($ffmpegPid);
 
@@ -270,4 +273,3 @@ sub sendOpenHab()
     # log
     $LOGFILE->say("Send $cmd to openHab") if $logFile;
 }
-

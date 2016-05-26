@@ -121,6 +121,7 @@ Switch Baby_Monitor "Babyphone" (Child) { exec="ON:perl@@audioDetection.pl@@--st
 ```
 
 # Changelog
+- *0.7*: Set default silent time to 60s and stop alarm event if close ffmpeg
 - *0.6*: Reconnect with pipe handling
 - *0.5*: Fix iceCast2 bug in streaming and add option --iceCastVol
 - *0.4*: Fix high/low pass filtering bug. Use pipe for IPC
@@ -130,4 +131,3 @@ Switch Baby_Monitor "Babyphone" (Child) { exec="ON:perl@@audioDetection.pl@@--st
 # Example
 That's my babephone :)
 <img src="https://github.com/pvizeli/openHab-AudioDetection/blob/master/example_openhab.png" width="400">
-
